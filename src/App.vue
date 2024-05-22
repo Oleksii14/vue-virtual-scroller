@@ -1,47 +1,86 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
+
+import IntersectionObserver from './IntersectionObserver.vue'
+
+import { ref } from 'vue'
+
+const items = ref([])
+const page = ref(1)
+
+const addItems = () => {
+  fetch(`https://randomuser.me/api/?page=${page.value}&results=30`)
+    .then((r) => r.json())
+    .then((data) => {
+      items.value = items.value.concat(
+        data.results.map((item, idx) => {
+          if (idx === 1) {
+            return {
+              ...item,
+              picture: {
+                ...item.picture,
+                medium:
+                  'https://c8.alamy.com/comp/2AP1J6J/eiffel-tower-in-paris-portrait-orientation-2AP1J6J.jpg'
+              }
+            }
+          }
+          return item
+        })
+      )
+    })
+
+  page.value++
+}
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
+  <div class="container">
+    <DynamicScroller
+      key-field="phone"
+      page-mode
+      :items="items"
+      :min-item-size="40"
+      style="flex-grow: 1"
+    >
+      <template v-slot="{ item, index, active }">
+        <DynamicScrollerItem
+          :size-dependencies="[item.phone]"
+          :item="item"
+          :active="active"
+          :data-index="index"
+        >
+          <div style="display: flex; flex-direction: column">
+            {{ item.phone }}
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-    </div>
-  </header>
-
-  <main>
-    <TheWelcome />
-  </main>
+            <img :src="item.picture.medium" />
+          </div>
+        </DynamicScrollerItem>
+      </template>
+    </DynamicScroller>
+    <IntersectionObserver @intersected="addItems" />
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
+<style>
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+body {
+  height: calc(100vh - 16px);
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
+img {
+  width: 200px;
+}
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+.container {
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column-reverse;
+  overflow: auto;
 }
 </style>
